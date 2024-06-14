@@ -29,7 +29,7 @@ const NewBook = (props) => {
 
     createBook({ variables: { title, author, published: parseInt(published), genres } })
 
-    console.log('add book...')
+    console.log('add book..')
 
     setTitle('')
     setPublished('')
