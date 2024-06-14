@@ -11,8 +11,14 @@ const BirthYear = props => {
 
     const submit = async (event)  => {
         event.preventDefault()
-        editAuthor({ variables: { name: selectedAuthor, setBornTo: parseInt(birthYear) }})
 
+        if (birthYear === '') {
+            alert('Please enter a birthyear')
+            return
+        }
+        
+        editAuthor({ variables: { name: selectedAuthor, setBornTo: parseInt(birthYear) }})
+        
         setSelectedAuthor('')
         setBirthYear('')
 
