@@ -63,20 +63,24 @@ const resolvers = {
   Query: {
     bookCount: () => Book.collection.countDocuments(),
     authorCount: () => Author.collection.countDocuments(),
-    allBooks: (root, args) => {
-      let newBooks = books;
-
-        if(args.author && args.genre) {
-            newBooks = newBooks.filter(b => b.author === args.author && b.genres.includes(args.genre))
-        } else {
-            if(args.author) {
-                newBooks = newBooks.filter(b => b.author === args.author);
-            }
-            if(args.genre) {
-                newBooks = newBooks.filter(b => b.genres.includes(args.genre));
-            }
+    allBooks: async (root, args) => {
+      {
+        const filter = {};
+        
+        if (args.author) {
+          const author = await Author.findOne({ name: args.author });
+          if (!author) {
+            return [];
+          }
+          filter.author = author._id;
         }
-        return newBooks;
+        
+        if (args.genre) {
+          filter.genres = { $in: [args.genre] };
+        }
+        
+        return await Book.find(filter).populate('author');
+      }
     },
     allAuthors: async () => {
       return Author.find({}) 
@@ -117,6 +121,7 @@ const resolvers = {
         throw new GraphQLError('Saving book failed', {
           extensions: {
             code: 'BAD_USER_INPUT',
+            invalidArgs: args.title,
             error
         }
       })
