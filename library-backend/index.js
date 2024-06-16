@@ -1,15 +1,17 @@
 const { ApolloServer } = require('@apollo/server')
 const { startStandaloneServer } = require('@apollo/server/standalone')
-const { graphql, GraphQLError } = require('graphql')
-const { v1: uuid } = require('uuid')
+const { GraphQLError } = require('graphql')
+const jwt = require('jsonwebtoken')
 
 const mongoose = require('mongoose')
 mongoose.set('strictQuery', false)
 const Author = require('./models/author')
 const Book = require('./models/book')
+const User = require('./models/user')
 require('dotenv').config()
 
 const MONGODB_URI = process.env.MONGODB_URI
+const JWT_SECRET = process.env.JWT_SECRET
 
 console.log('connecting to', MONGODB_URI)
 
@@ -37,11 +39,22 @@ const typeDefs = `
     id: ID!
   }
 
+  type User {
+    username: String!
+    favoriteGenre: String!
+    id: ID!
+  }
+
+  type Token {
+    value: String!
+  }
+
   type Query {
     bookCount: Int!
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]!
     allAuthors: [Author!]!
+    me: User
   }
   
   type Mutation {
@@ -56,6 +69,16 @@ const typeDefs = `
           name: String!
           setBornTo: Int!
       ): Author
+
+      createUser(
+          username: String!
+          favoriteGenre: String!
+      ): User
+
+      login(
+          username: String!
+          password: String!
+      ): Token
   }
 `
 
@@ -84,7 +107,11 @@ const resolvers = {
     },
     allAuthors: async () => {
       return Author.find({}) 
-    }
+    },
+
+    me: (root, args, context) => {
+      return context.currentUser
+    },
   },
 
   Author: {
@@ -95,8 +122,25 @@ const resolvers = {
     } 
   },
 
+  Book: {
+    author: async (root) => {
+      const author = await Author.findById( root.author )
+      return author
+    }
+  },
+
   Mutation: {
-    addBook: async (root, args) => {
+    addBook: async (root, args, context) => {
+      const currentUser = context.currentUser
+
+      if (!currentUser) {
+        throw new GraphQLError('Not authenticated', {
+          extensions: {
+            code: 'UNAUTHENTICATED'
+          }
+        
+        })
+      }
 
       let author = await Author.findOne({ name: args.author })
 
@@ -131,7 +175,17 @@ const resolvers = {
   
   },
 
-    editAuthor: async (root, args) => {
+    editAuthor: async (root, args, context) => {
+      const currentUser = context.currentUser
+
+      if (!currentUser) {
+        throw new GraphQLError('Not authenticated', {
+          extensions: {
+            code: 'UNAUTHENTICATED'
+          }
+        })
+      }
+
       const author = await Author.findOne({ name: args.name })
       author.born = args.setBornTo
       
@@ -148,6 +202,40 @@ const resolvers = {
     }
     return author
   },
+
+  createUser: async (root, args) => {
+    const user = new User({ username: args.username, favoriteGenre: args.favoriteGenre })
+    
+    return user.save()
+    .catch(error => {
+      throw new GraphQLError('Creating the user failed', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+          invalidArgs: args.username,
+          error
+        }
+      })
+    })
+  },
+
+  login: async (root, args) => {
+    const user = await User.findOne({ username: args.username})
+
+    if (!user || args.password !== 'password') {
+      throw new GraphQLError('Wrong credentials', {
+        extensions: {
+          code: 'BAD_USER_INPUT'
+        }
+      })
+    }
+
+    const userForToken = {
+      username: user.username,
+      id: user._id
+    }
+
+    return { value: jwt.sign(userForToken, JWT_SECRET) }
+  }
   
 }
 }
@@ -159,6 +247,14 @@ const server = new ApolloServer({
 
 startStandaloneServer(server, {
   listen: { port: 4000 },
+  context: async ({ req, res }) => {
+    const auth = req ? req.headers.authorization : null
+    if (auth && auth.toLowerCase().startsWith('bearer ')) {
+      const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
+      const currentUser = await User.findById(decodedToken.id)
+      return { currentUser }
+    }
+  },
 }).then(({ url }) => {
   console.log(`Server ready at ${url}`)
 })
