@@ -8,9 +8,7 @@ import LoginForm from "./components/LoginForm"
 import { ALL_AUTHORS, BOOK_ADDED, ALL_BOOKS } from "./queries"
 import Recommend from "./components/Recommend"
 
-// function that takes care of manipulating cache
 export const updateCache = (cache, query, addedBook) => {
-  // helper that is used to eliminate saving same person twice
   const uniqByName = (a) => {
     let seen = new Set()
     return a.filter((item) => {

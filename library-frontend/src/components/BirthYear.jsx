@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { ALL_AUTHORS} from '../queries';
-import { EDIT_AUTHOR } from '../mutations';
+import { ALL_AUTHORS, EDIT_AUTHOR } from '../queries';
 
 const BirthYear = props => {
     const [selectedAuthor, setSelectedAuthor] = useState('');

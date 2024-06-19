@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMutation } from '@apollo/client'
-import { LOGIN } from '../mutations'
+import { LOGIN } from '../queries'
 
 const LoginForm = ({ setError, setToken, setPage, show }) => {
 
