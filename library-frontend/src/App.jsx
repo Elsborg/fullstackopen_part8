@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery, useApolloClient, useMutation, useSubscription } from "@apollo/client"
+import { useQuery, useApolloClient, useSubscription } from "@apollo/client"
 import Authors from "./components/Authors"
 import Books from "./components/Books"
 import NewBook from "./components/NewBook"
@@ -34,7 +34,7 @@ const App = () => {
   useSubscription(BOOK_ADDED, {
     onData: ({ data, client }) => {
       const addedBook = data.data.bookAdded
-      notify(`New book added: ${addedBook.title}`)
+      notify(`${addedBook.title} added`)
       updateCache(client.cache, { query: ALL_BOOKS }, addedBook)
 
       client.cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {

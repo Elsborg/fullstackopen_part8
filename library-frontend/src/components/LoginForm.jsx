@@ -4,9 +4,6 @@ import { LOGIN } from '../queries'
 
 const LoginForm = ({ setError, setToken, setPage, show }) => {
 
-  if (!show) {
-    return null
-  }
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
@@ -31,6 +28,10 @@ const LoginForm = ({ setError, setToken, setPage, show }) => {
     event.preventDefault()
 
     login({ variables: { username, password } })
+  }
+
+  if (!show) {
+    return null
   }
 
   return (
